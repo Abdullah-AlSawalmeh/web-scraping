@@ -13,24 +13,34 @@ def  get_citations_needed_count(URL):
 
 
 def get_citations_needed_report(URL):
-  page = requests.get(URL)
-  soup = BeautifulSoup(page.content, 'html.parser')
-  all_results = soup.find_all('a', title="Wikipedia:Citation needed")
-  reports=[]
+    response = requests.get(URL)
+    paragraphs = BeautifulSoup(response.content, 'html.parser').find(id="bodyContent").find_all('p')
+    citations = []
 
-  for result in all_results:
-    res=result.parent.parent.parent
-    p=res.text.strip()
-    print(p)
-    print("\n\n")
-    reports.append([p])
+    for p in paragraphs:
+        if p.find_all('a', title='Wikipedia:Citation needed'):
+            paragraph = p.text
+            citation_count = paragraph.count ("[citation needed")
+            i = 0
 
+            while i < citation_count:
+                partition = paragraph.split("[citation needed]")
+                citation_dict = {"sentence": partition[0]}
+                paragraph = paragraph.replace(partition[0], "", 1)
+                paragraph = paragraph.replace("[citation needed]", "", 1)
+                citations.append(citation_dict)
+                i += 1
 
-  file_content = json.dumps(reports)
-  with open('reports.json', 'w') as file:
-      file.writelines(file_content)
+    json_object = json.dumps(citations, indent=4)
+    with open('reports.json', 'w') as f:
+        f.write(json_object)
 
-  return reports
+    result = ""   
+    for c in citations:
+        result += (f"Citation needed for: \"{c['sentence']}\"\n\n")
+        result += "-------------------------\n\n\n"
+
+    return result
 
 print(get_citations_needed_count(URL))
 print(get_citations_needed_report(URL))
